@@ -2,6 +2,7 @@ import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import webDriverInstance from 'wd';
 import CONFIG from './configGenerator';
+import shelljs from 'shelljs';
 
 const SuiteManager = class {
 	constructor () {
@@ -19,25 +20,44 @@ const SuiteManager = class {
 	
 	async initBefore () {
 		return new Promise(async (resolve) => {
-			const driver = webDriverInstance.promiseChainRemote(this.serverConfig);
-			await driver.init(this.capsConfig).setImplicitWaitTimeout(10000);
+            this.exposeChai(webDriverInstance);
+
+            const driver = webDriverInstance.promiseChainRemote(this.serverConfig);
+			await driver.init(this.capsConfig);
+			await driver.setImplicitWaitTimeout(10000);
 			const contexts = await driver.contexts();
 			await driver.context(contexts[1]);
-			
-			this.exposeChai();
+
 			this.exposeDriver(driver);
+            this.enhanceDriverWithUtils();
 
 			resolve();
 		});
 	}
+
+    enhanceDriverWithUtils () {
+		const path = 'tests/utils';
+
+		shelljs.ls(path).forEach(async (element) => {
+            const el = element.replace('.js', '');
+            global.driver[el] = require(`./../${path}/${el}`).default;
+		});
+	}
 	
-	exposeChai() {
+	exposeChai(webDriverInstance) {
 		chai.use(chaiAsPromised);
-		global.expect = chai.expect;
+        chai.should();
+        chaiAsPromised.transferPromiseness = webDriverInstance.transferPromiseness;
 	}
 	
 	exposeDriver(driver) {
 		global.driver = driver;
+		global.driver.screenshot = async (path) => {
+            const contexts = await driver.contexts();
+            await driver.context(contexts[0]);
+            await driver.saveScreenshot(`reports/${path}.png`);
+            await driver.context(contexts[1]);
+		}
 	}
 	
 	async initAfter () {
