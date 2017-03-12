@@ -6,19 +6,29 @@ import shelljs from 'shelljs';
 
 const SuiteManager = class {
 	constructor () {
+        this.beginDateTime = process.env.DATETIME;
+        this.deviceId = process.env.DEVICE;
+        this.moduleName = null;
+
 		this.serverConfig = {
 			host: '127.0.0.1',
 			port: process.env.PORT
 		};
+
 		this.capsConfig = {
-			udid: process.env.DEVICE,
+			udid: this.deviceId,
 			deviceName: '*',
-			platformName: 'Android',
-			app: CONFIG.APK_PATH
+			platformName: process.env.PLATFORM,
+			app: process.env.PLATFORM === 'Android' ? CONFIG.APK_PATH : CONFIG.APP_PATH,
+			noReset: true,
+			fullReset: false,
+			automationName: process.env.PLATFORM === 'Android' ? "Appium" : "XCUITest"
 		};
 	}
 	
-	async initBefore () {
+	async initBefore (filename) {
+		this.moduleName = filename.split('/').pop().split('.').shift();
+
 		return new Promise(async (resolve) => {
             this.exposeChai(webDriverInstance);
 
@@ -55,7 +65,7 @@ const SuiteManager = class {
 		global.driver.screenshot = async (path) => {
             const contexts = await driver.contexts();
             await driver.context(contexts[0]);
-            await driver.saveScreenshot(`reports/${path}.png`);
+            await driver.saveScreenshot(`reports/${this.beginDateTime}/${this.deviceId}/${this.moduleName}-${path}.png`);
             await driver.context(contexts[1]);
 		}
 	}
