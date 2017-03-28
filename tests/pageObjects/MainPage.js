@@ -1,15 +1,15 @@
 const LoginPage = class {
     isPage() {
         return driver
-            .waitForElementByClassName('app').should.eventually.exist
-            .waitForElementByClassName('blink').should.eventually.exist
-            .waitForElementByClassName('received').should.eventually.exist
+            .waitForClass('app').should.eventually.exist
+            .waitForClass('blink').should.eventually.exist
+            .waitForClass('received').should.eventually.exist
             .title().should.eventually.equal('Hello World');
     }
 
     isButtonColorRed() {
         return driver
-            .waitForElementByClassName('red').should.eventually.exist;
+            .waitForClass('red').should.eventually.exist;
     }
 
     clickButton() {

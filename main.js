@@ -1,4 +1,5 @@
-import ParallelExecutionManager from '/framework/parallelExecutionManager'
+import dependenciesManager from '/framework/dependenciesManager';
+import ParallelExecutionManager from '/framework/parallelExecutionManager';
 
 console.log('Starting up...');
 

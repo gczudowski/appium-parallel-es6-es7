@@ -1,15 +1,13 @@
 import SuiteManager from '/framework/suiteManager';
+import Framework from '/framework/framework';
 
-describe("main page", function () {
-    before(SuiteManager.initBefore.bind(SuiteManager, __filename));
-    after(SuiteManager.initAfter.bind(SuiteManager));
-		
+describe("main page", SuiteManager.executeTestSuite(() => {
     it(`should make it possible to click the 'Device is ready' button and change its color to red`, async () => {
-		await driver
+		await Framework
 			.MainPage.isPage();
-		await driver
+		await Framework
 			.MainPage.clickButton();
-		await driver
+		await Framework
 			.MainPage.isButtonColorRed();
     });
-});
+}));

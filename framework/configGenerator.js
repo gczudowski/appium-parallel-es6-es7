@@ -6,6 +6,9 @@ const ConfigGenerator = class {
 		this.config = CONFIG;
 		this.config.APK_PATH = `${CommonUtils.getMainPath()}/apk/${this.config.APK_PATH}`;
 		this.config.APP_PATH = `${CommonUtils.getMainPath()}/apk/${this.config.APP_PATH}`;
+		this.config.PORT_MIN = 5000;
+		this.config.MAXIMUM_WAIT_TIMEOUT_MS = this.config.MAXIMUM_WAIT_TIMEOUT_SECONDS * 1000;
+		this.config.XCODE_CONFIG = `${CommonUtils.getMainPath()}/framework/xcode.conf`;
 
 		return this.config;
 	}

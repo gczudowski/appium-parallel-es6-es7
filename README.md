@@ -8,5 +8,6 @@
 
 ## Quick start
 1. `npm install -g forever`
+1. `brew install graphicsmagick`
 1. `npm install`
 1. `npm run start`

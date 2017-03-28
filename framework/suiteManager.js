@@ -1,8 +1,8 @@
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import webDriverInstance from 'wd';
+import screenshotComparer from 'wd-screenshot';
 import CONFIG from './configGenerator';
-import shelljs from 'shelljs';
 
 const SuiteManager = class {
 	constructor () {
@@ -20,9 +20,12 @@ const SuiteManager = class {
 			deviceName: '*',
 			platformName: process.env.PLATFORM,
 			app: process.env.PLATFORM === 'Android' ? CONFIG.APK_PATH : CONFIG.APP_PATH,
-			noReset: true,
-			fullReset: false,
-			automationName: process.env.PLATFORM === 'Android' ? "Appium" : "XCUITest"
+			// noReset: true,
+			fullReset: true,
+			automationName: process.env.PLATFORM === 'Android' ? "Appium" : "XCUITest",
+            xcodeConfigFile: CONFIG.XCODE_CONFIG,
+            nativeWebScreenshot: true,
+			wdaLocalPort: +process.env.PORT + 1500
 		};
 	}
 	
@@ -31,43 +34,56 @@ const SuiteManager = class {
 
 		return new Promise(async (resolve) => {
             this.exposeChai(webDriverInstance);
+			this.enhanceDriver(webDriverInstance);
 
             const driver = webDriverInstance.promiseChainRemote(this.serverConfig);
 			await driver.init(this.capsConfig);
-			await driver.setImplicitWaitTimeout(10000);
+			await driver.setImplicitWaitTimeout(CONFIG.MAXIMUM_WAIT_TIMEOUT_MS);
 			const contexts = await driver.contexts();
 			await driver.context(contexts[1]);
 
 			this.exposeDriver(driver);
-            this.enhanceDriverWithUtils();
 
 			resolve();
 		});
 	}
 
-    enhanceDriverWithUtils () {
-		const path = 'tests/utils';
-
-		shelljs.ls(path).forEach(async (element) => {
-            const el = element.replace('.js', '');
-            global.driver[el] = require(`./../${path}/${el}`).default;
-		});
-	}
-	
 	exposeChai(webDriverInstance) {
 		chai.use(chaiAsPromised);
         chai.should();
         chaiAsPromised.transferPromiseness = webDriverInstance.transferPromiseness;
 	}
+
+	enhanceDriver(webDriverInstance) {
+        webDriverInstance.addPromiseChainMethod(
+            'waitForClass',
+			function(selector, timeout = CONFIG.MAXIMUM_WAIT_TIMEOUT_MS) {
+                return this
+                    .waitForElementByClassName(selector, timeout);
+            }
+        );
+	}
 	
 	exposeDriver(driver) {
 		global.driver = driver;
 		global.driver.screenshot = async (path) => {
-            const contexts = await driver.contexts();
-            await driver.context(contexts[0]);
             await driver.saveScreenshot(`reports/${this.beginDateTime}/${this.deviceId}/${this.moduleName}-${path}.png`);
-            await driver.context(contexts[1]);
-		}
+		};
+
+        const comparer = screenshotComparer({
+        	Q: driver.Q,
+			tolerance: CONFIG.SCREENSHOT_TOLERANCE,
+            saveDiffImagePath: 'screenshot-reference',
+            highlightColor: 'magenta',
+            highlightStyle: 'XOR'
+        });
+
+        global.driver.compare = async (path) => {
+			return await comparer.compareScreenshot(
+				`screenshot-reference/${this.deviceId}/${this.moduleName}-${path}.png`,
+				`reports/${this.beginDateTime}/${this.deviceId}/${this.moduleName}-${path}.png`
+            );
+        };
 	}
 	
 	async initAfter () {
@@ -75,6 +91,14 @@ const SuiteManager = class {
 			await driver.quit();
 			resolve();
 		});
+	}
+
+    executeTestSuite (its) {
+		return function() {
+            before(this.initBefore.bind(this, __filename));
+            its();
+            after(this.initAfter.bind(this));
+		}.bind(this);
 	}
 };
 

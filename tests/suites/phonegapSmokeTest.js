@@ -1,11 +1,9 @@
 import SuiteManager from '/framework/suiteManager';
+import Framework from '/framework/framework';
 
-describe("smoke test", function () {
-    before(SuiteManager.initBefore.bind(SuiteManager, __filename));
-    after(SuiteManager.initAfter.bind(SuiteManager));
-	
+describe("smoke test", SuiteManager.executeTestSuite(() => {
 	it(`should display the main page`, async () => {
-		await driver
+		await Framework
 			.MainPage.isPage();
 	});
-});
+}));
